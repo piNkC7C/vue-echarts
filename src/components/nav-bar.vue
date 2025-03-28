@@ -1,5 +1,22 @@
 <script setup lang="ts">
-import { NavSubMenu, NavMenuSubItem } from '@/components/NavMenu'
+import { computed } from 'vue'
+import { NavSubMenu, NavMenuItem, NavMenuSubItem } from '@/components/NavMenu'
+import routes from '@/router/routes'
+
+const handleSelect = (index: string) => {
+  console.log('选中菜单项:', index)
+}
+
+// 计算左右两侧的路由
+const leftRoutes = computed(() => {
+  const half = Math.ceil(routes.length / 2)
+  return routes.slice(0, half)
+})
+
+const rightRoutes = computed(() => {
+  const half = Math.ceil(routes.length / 2)
+  return routes.slice(half)
+})
 </script>
 
 <template>
@@ -13,17 +30,32 @@ import { NavSubMenu, NavMenuSubItem } from '@/components/NavMenu'
     <div class="relative h-full flex items-center justify-between">
       <!-- 左侧菜单区域 -->
       <div class="flex-1 flex justify-center items-center px-8">
-        <NavSubMenu index="1" title="首页">
-          <NavMenuSubItem index="1-1">概览</NavMenuSubItem>
-          <NavMenuSubItem index="1-2">仪表盘</NavMenuSubItem>
-          <NavMenuSubItem index="1-3">报告</NavMenuSubItem>
-        </NavSubMenu>
+        <!-- 动态生成左侧菜单（routes的前半部分） -->
+        <template v-for="(route, index) in leftRoutes" :key="route.path">
+          <!-- 有子路由的菜单项 -->
+          <NavSubMenu
+            v-if="route.children && route.children.length"
+            :index="String(route.name)"
+            :title="String(route.name)"
+          >
+            <NavMenuSubItem
+              v-for="child in route.children"
+              :key="child.path"
+              :index="String(child.name)"
+              :to="`${route.path}/${child.path}`"
+            >
+              {{ child.name }}
+            </NavMenuSubItem>
+          </NavSubMenu>
 
-        <NavSubMenu index="2" title="产品">
-          <NavMenuSubItem index="2-1">解决方案</NavMenuSubItem>
-          <NavMenuSubItem index="2-2">服务</NavMenuSubItem>
-          <NavMenuSubItem index="2-3">案例</NavMenuSubItem>
-        </NavSubMenu>
+          <!-- 没有子路由的菜单项 -->
+          <NavMenuItem
+            v-else
+            :index="String(route.name)"
+            :title="String(route.name)"
+            :to="route.path"
+          ></NavMenuItem>
+        </template>
       </div>
 
       <!-- Logo/自定义内容插槽 -->
@@ -33,17 +65,32 @@ import { NavSubMenu, NavMenuSubItem } from '@/components/NavMenu'
 
       <!-- 右侧菜单区域 -->
       <div class="flex-1 flex justify-center items-center px-8">
-        <NavSubMenu index="3" title="资源">
-          <NavMenuSubItem index="3-1">文档</NavMenuSubItem>
-          <NavMenuSubItem index="3-2">教程</NavMenuSubItem>
-          <NavMenuSubItem index="3-3">API</NavMenuSubItem>
-        </NavSubMenu>
+        <!-- 动态生成右侧菜单（routes的后半部分） -->
+        <template v-for="(route, index) in rightRoutes" :key="route.path">
+          <!-- 有子路由的菜单项 -->
+          <NavSubMenu
+            v-if="route.children && route.children.length"
+            :index="String(route.name)"
+            :title="String(route.name)"
+          >
+            <NavMenuSubItem
+              v-for="child in route.children"
+              :key="child.path"
+              :index="String(child.name)"
+              :to="`${route.path}/${child.path}`"
+            >
+              {{ child.name }}
+            </NavMenuSubItem>
+          </NavSubMenu>
 
-        <NavSubMenu index="4" title="关于">
-          <NavMenuSubItem index="4-1">团队</NavMenuSubItem>
-          <NavMenuSubItem index="4-2">联系我们</NavMenuSubItem>
-          <NavMenuSubItem index="4-3">加入我们</NavMenuSubItem>
-        </NavSubMenu>
+          <!-- 没有子路由的菜单项 -->
+          <NavMenuItem
+            v-else
+            :index="String(route.name)"
+            :title="String(route.name)"
+            :to="route.path"
+          ></NavMenuItem>
+        </template>
       </div>
     </div>
   </nav>

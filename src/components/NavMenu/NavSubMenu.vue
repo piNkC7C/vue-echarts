@@ -1,24 +1,34 @@
 <script setup lang="ts">
 import { ref, computed, inject, provide, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
-const props = defineProps<{
+interface Props {
   index: string
   title: string
+  to?: string | object
+  replace?: boolean
+  hideDropdownIcon?: boolean
   disabled?: boolean
-}>()
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  title: '',
+  replace: false,
+  hideDropdownIcon: false,
+  disabled: false,
+})
+
+// 注入顶层处理函数，如果存在的话 - 移到前面来避免顺序问题
+const parentHandleSelect = inject('handleSelect', null) as ((index: string) => void) | null
 
 const activeIndex = inject('activeIndex', ref(''))
 const updateActiveIndex = inject('updateActiveIndex', (index: string) => {})
 
 const isExpanded = ref(false)
-
-const toggleExpand = () => {
-  if (props.disabled) return
-  isExpanded.value = !isExpanded.value
-}
-
 const dropdownRef = ref<HTMLElement | null>(null)
 const isOpen = ref(false)
+// 子菜单插槽内容判断标志
+const hasSlotContent = ref(false)
 
 // 计算下拉菜单的位置
 const dropdownPosition = computed(() => {
@@ -38,14 +48,43 @@ const handleClick = () => {
   isOpen.value = !isOpen.value
 }
 
+// 修复handleItemClick函数
+const handleItemClick = (navigate: () => void) => {
+  if (parentHandleSelect) {
+    parentHandleSelect(props.index)
+  }
+
+  // 检查默认插槽是否有内容(通过插槽传递一个标记)
+  if (hasSlotContent.value) {
+    isOpen.value = !isOpen.value
+  } else {
+    navigate()
+    isOpen.value = false // 导航后关闭下拉菜单
+  }
+}
+
 // 监听isOpen的变化，使用nextTick确保DOM更新后再调整位置
 watch(isOpen, (newValue) => {
   if (newValue) {
     nextTick(() => {
       adjustDropdownPosition()
+      // 在菜单打开时检查子项
+      checkForChildren()
     })
   }
 })
+
+// 更可靠的子项检查方法
+const checkForChildren = () => {
+  if (!dropdownRef.value) return
+
+  const contentWrapper = dropdownRef.value.querySelector('.relative.z-10')
+  hasSlotContent.value = !!(
+    contentWrapper &&
+    contentWrapper.children &&
+    contentWrapper.children.length > 0
+  )
+}
 
 // 调整下拉菜单位置以避免溢出
 const adjustDropdownPosition = () => {
@@ -104,22 +143,80 @@ onUnmounted(() => {
 
 provide('subMenuIndex', props.index)
 
-// 注入顶层处理函数，如果存在的话
-const parentHandleSelect = inject('handleSelect', null) as ((index: string) => void) | null
-
 // 提供自己的处理函数给子菜单项
 provide('handleSelect', (index: string) => {
   if (parentHandleSelect) {
     parentHandleSelect(index)
   }
 })
+
+// 获取当前路由
+const route = useRoute()
+
+// 由子菜单项激活状态决定父菜单项是否激活
+const activeChildIndex = ref<string | null>(null)
+provide('updateActiveChild', (index: string | null) => {
+  activeChildIndex.value = index
+})
+
+// 计算子项是否激活
+const isChildActive = computed(() => {
+  return !!activeChildIndex.value
+})
 </script>
 
 <template>
-  <div class="relative group mx-2" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
-    <!-- 科技感主菜单按钮 -->
+  <div
+    class="relative group mx-2"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
+    :data-sub-menu-id="index"
+  >
+    <!-- 主菜单按钮，可以选择是否添加路由链接 -->
+    <router-link v-if="to" :to="to" custom v-slot="{ navigate, isActive, isExactActive }">
+      <div
+        class="px-4 py-2 text-cyan-300 cursor-pointer flex items-center relative overflow-hidden tech-btn group"
+        :class="{ 'active-route': isActive || isExactActive || isChildActive }"
+        @click="handleItemClick(navigate)"
+      >
+        <!-- 背景效果 -->
+        <div
+          class="absolute inset-0 bg-gradient-to-r from-blue-900/20 to-cyan-900/20 backdrop-blur-sm border border-cyan-500/30 rounded-md z-0 tech-bg"
+        ></div>
+
+        <!-- 装饰线条 -->
+        <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-cyan-400"></div>
+        <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan-400"></div>
+
+        <!-- 文字和图标 -->
+        <div class="relative z-10 flex items-center">
+          <slot name="title">{{ title }}</slot>
+          <i
+            v-if="!hideDropdownIcon"
+            class="ml-1 text-xs transform transition-transform duration-300"
+            :class="{ 'rotate-180': isOpen }"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </i>
+        </div>
+      </div>
+    </router-link>
+
     <div
+      v-else
       class="px-4 py-2 text-cyan-300 cursor-pointer flex items-center relative overflow-hidden tech-btn group"
+      :class="{ 'active-route': isChildActive }"
       @click="handleClick"
     >
       <!-- 背景效果 -->
@@ -135,6 +232,7 @@ provide('handleSelect', (index: string) => {
       <div class="relative z-10 flex items-center">
         <slot name="title">{{ title }}</slot>
         <i
+          v-if="!hideDropdownIcon"
           class="ml-1 text-xs transform transition-transform duration-300"
           :class="{ 'rotate-180': isOpen }"
         >
@@ -230,5 +328,10 @@ provide('handleSelect', (index: string) => {
 
 .tech-dropdown {
   box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+}
+
+.active-route .tech-bg {
+  background: linear-gradient(to right, rgba(8, 145, 178, 0.3), rgba(6, 182, 212, 0.3));
+  box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.3);
 }
 </style>
