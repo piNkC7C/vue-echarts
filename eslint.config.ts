@@ -21,4 +21,18 @@ export default defineConfigWithVueTs(
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   skipFormatting,
+
+  // 添加自定义规则配置
+  {
+    rules: {
+      // JavaScript未使用变量改为警告级别
+      'no-unused-vars': 'warn',
+      // TypeScript未使用变量改为警告级别
+      '@typescript-eslint/no-unused-vars': 'warn',
+      // Vue模板中未使用变量改为警告级别
+      'vue/no-unused-vars': 'warn',
+      // 未使用组件改为警告级别
+      'vue/no-unused-components': 'warn',
+    },
+  },
 )

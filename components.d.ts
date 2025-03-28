@@ -8,9 +8,23 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    Button: typeof import('./src/components/ui/button.vue')['default']
+    ButtonDropdown: typeof import('./src/components/ui/button-dropdown.vue')['default']
+    ButtonUi: typeof import('./src/components/ui/button-ui.vue')['default']
+    DropdownButton: typeof import('./src/components/ui/dropdown-button.vue')['default']
     ElContainer: typeof import('element-plus/es')['ElContainer']
     ElHeader: typeof import('element-plus/es')['ElHeader']
     ElMain: typeof import('element-plus/es')['ElMain']
+    ElMenu: typeof import('element-plus/es')['ElMenu']
+    ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
+    NavBar: typeof import('./src/components/nav-bar.vue')['default']
+    NavButton: typeof import('./src/components/ui/nav-button.vue')['default']
+    NavDropdown: typeof import('./src/components/ui/nav-dropdown.vue')['default']
+    NavDropdownButton: typeof import('./src/components/ui/nav-dropdown-button.vue')['default']
+    NavMenu: typeof import('./src/components/NavMenu/NavMenu.vue')['default']
+    NavMenuItem: typeof import('./src/components/NavMenu/NavMenuItem.vue')['default']
+    NavMenuSubItem: typeof import('./src/components/NavMenu/NavMenuSubItem.vue')['default']
+    NavSubMenu: typeof import('./src/components/NavMenu/NavSubMenu.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }
